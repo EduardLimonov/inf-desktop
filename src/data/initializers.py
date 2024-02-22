@@ -131,7 +131,7 @@ def _fit_model(df_raw: pd.DataFrame, target_column: str = "alive", train_size=0.
 
     X_test, y_test = get_xy(data_final_test)
 
-    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=25,
+    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=40,
                                                                          class_weight="balanced_subsample"))
 
     return _FitModelResults(

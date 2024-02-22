@@ -1,5 +1,5 @@
 class Settings:
-    fit_model: bool = False
+    # fit_model: bool = True
     dataset_path = "resource/dataset/data.xlsx"
 
     model_path = "resource/model_dumps/model.PICKLE"

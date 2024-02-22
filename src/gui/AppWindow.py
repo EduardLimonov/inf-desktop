@@ -10,13 +10,13 @@ from PyQt5.QtWidgets import QProgressBar
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
 from core.core import Core
-from gui.plots import plot_accuracy, plot_figures
+from gui.plots import plot_figures
 from gui.table_utils import ComboBoxDelegate, DoubleDelegate, getItem, CustomTableView
 from settings import settings
 
 ID_COLUMN = "Идентификатор"
 ALIVE_COLUMN = "Оценка выживания"
-ALIVE_GT_COLUMN = "Выжил"
+ALIVE_GT_COLUMN = "Госпит. летальность"
 TYPE_COLUMN = "Тип записи"
 TYPE_START_STATE = "Исходное сост."
 TYPE_START_STATE_EMPTY = "Исходное сост. *"
@@ -248,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         test_df[ID_COLUMN] = test_df.index.values
         test_df = test_df[[ID_COLUMN, ALIVE_GT_COLUMN, ALIVE_COLUMN, *cols]]
 
-        plotly_graph, plotly_bar = plot_figures(preds, ground_true)
+        plotly_graph, plotly_bar = plot_figures(preds, ground_true, ALIVE_GT_COLUMN)
         self.webEngineView.setHtml(plotly_graph.to_html(include_plotlyjs='cdn'))
         self.webEngineView_2.setHtml(plotly_bar.to_html(include_plotlyjs='cdn'))
 

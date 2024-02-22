@@ -161,5 +161,7 @@ cython_debug/
 .idea/
 
 .~lock*
+*.PICKLE
+*.csv
 
 
