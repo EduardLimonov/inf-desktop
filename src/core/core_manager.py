@@ -4,24 +4,22 @@ from typing import List, Tuple, Optional
 import pandas as pd
 import requests
 
+from core.http_utils import RESULT_MARK
 from data.initializers import XYTables
 from data.utils import CommonDataInfo
 
 
 class CoreManager:
 
-    url: str = "https://127.0.0.1"
+    url: str = "http://127.0.0.1:8000/"
 
     def __init__(self):
         pass
 
     def get_columns(self) -> List[str]:
-        print(json.loads(str(requests.get(
-                self.url
-            ).content)))
         return json.loads(str(requests.get(
-                self.url
-            ).content))
+                self.url + "get_columns"
+            ).text))[RESULT_MARK]
 
     def check_correct_feature(self, feature_name: str, value: str) -> bool:
         pass

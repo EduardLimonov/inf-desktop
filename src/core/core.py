@@ -13,8 +13,8 @@ class Core:
     system: System
     _core: ProcessHandler
 
-    def __init__(self):
-        self.system = init_all(settings.dataset_path)
+    def __init__(self, path: str = settings.dataset_path):
+        self.system = init_all(path)
         self._core = ProcessHandler(
             self.system.encoder, self.system.processor, self.system.data_info, self.system.model
         )
