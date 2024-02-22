@@ -1,13 +1,12 @@
 from typing import List, Tuple, Optional
 
-import streamlit as st
-import numpy as np
 import pandas as pd
 
 from data.data_handler import ProcessHandler
 from data.initializers import init_all, System, XYTables
 from data.utils import CommonDataInfo
 from settings import settings
+from settings.defines import defines
 
 
 class Core:
@@ -45,12 +44,6 @@ class Core:
         X = self._core.decode_data(self.system.test_data.X, rescale=False)
         return XYTables(X, self.system.test_data.y)
 
-    def calc_delta(self, df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-        df1 = self._core.encode_data(df1, rescale=False)
-        df2 = self._core.encode_data(df2, rescale=False)
-
-        return df2 - df1
-
     def get_data_info(self) -> CommonDataInfo:
         return self.system.data_info
 
@@ -73,37 +66,8 @@ class Core:
         df_dec = self._core.decode_data(df_enc_resc_fill, rescale=True)
         return df_dec
 
-    def fill_empty_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.reset_index(drop=True)
-        all_feats = list(df.columns)
+    @staticmethod
+    def set_define(param_name: str, value: str):
+        assert hasattr(defines, param_name), f"Defines settings has not attribute {param_name}"
 
-        if "Метка" in df.columns:
-            idx = df[df["Метка"].values != "Дельта"].index
-        else:
-            idx = np.full(len(df), True)
-
-        df_enc_resc_fill = self._core.encode_data(df[self.system.data_info.num_to_column_mapper].loc[idx], rescale=True)
-        df_enc_resc_fill = pd.DataFrame(
-            df_enc_resc_fill, columns=self.system.data_info.num_to_column_mapper, index=df.loc[idx].index
-        )
-
-        df_dec = self._core.decode_data(df_enc_resc_fill, rescale=True)
-
-        res = []
-        for i in df.index:
-            if i in df_dec.index:
-                res.append(df_dec.loc[i])
-                for c in ("Идентификатор", "Метка", "Оценка выживания"):
-                    if c in df.columns:
-                        res[-1][c] = df.loc[i][c]
-            else:
-                res.append(df.loc[i])
-
-        df_dec = pd.DataFrame(res)
-
-        for feat in all_feats:
-            if feat not in df_dec.columns:
-                df_dec[feat] = df[feat].values
-
-        df_dec = df_dec[all_feats].set_index("Идентификатор", drop=True)
-        return df_dec
+        defines.set_attr(param_name, value)

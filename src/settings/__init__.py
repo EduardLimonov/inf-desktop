@@ -8,5 +8,7 @@ class Settings:
     test_recom_path = "resource/test_dumps/test_recom.csv"
     recalc_test: bool = False
 
+    defines_path = "resource/defines/defines.PICKLE"
+
 
 settings = Settings()
