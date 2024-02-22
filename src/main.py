@@ -7,7 +7,7 @@ from core.core import Core
 
 
 def main():
-    from qt_material import apply_stylesheet
+    # from qt_material import apply_stylesheet
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts, True)
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
     with open("resource/ui/styles.qss", "r") as f:
