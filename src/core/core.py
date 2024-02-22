@@ -47,7 +47,7 @@ class Core:
     def get_data_info(self) -> CommonDataInfo:
         return self.system.data_info
 
-    def get_decoded_limits(self, feature_name) -> Tuple[float, float]:
+    def get_decoded_limits(self, feature_name: str) -> Tuple[float, float]:
         min_l, max_l = self.system.data_info.feature_limits[feature_name]
         min_l, max_l = self.system.processor.inverse_process(
             [
@@ -57,7 +57,10 @@ class Core:
         )[:, self.system.data_info.num_to_column_mapper.index(feature_name)]
         return min_l, max_l
 
-    def fill_empty(self, rows: pd.DataFrame) -> pd.DataFrame:
+    def fill_empty(self, rows: pd.DataFrame, encode_only: bool = False) -> pd.DataFrame:
+        if encode_only:
+            return self._core.encode_data(rows[self.system.data_info.num_to_column_mapper], rescale=False)
+
         df_enc_resc_fill = self._core.encode_data(rows[self.system.data_info.num_to_column_mapper], rescale=True)
         df_enc_resc_fill = pd.DataFrame(
             df_enc_resc_fill, columns=self.system.data_info.num_to_column_mapper, index=rows.index

@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QProgressBar
 
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
-from core.core import Core
+from core.core_manager import CoreManager
 from gui.plots import plot_figures
 from gui.table_utils import ComboBoxDelegate, DoubleDelegate, getItem, CustomTableView
 from settings import settings
@@ -26,11 +26,11 @@ TYPE_DELTA = "Дельта"
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    core: Core
+    core: CoreManager
     standardItemModel: Optional[QStandardItemModel]
     standardItemModelOutput: Optional[QStandardItemModel]
 
-    def __init__(self, core: Core):
+    def __init__(self, core: CoreManager):
         super().__init__()
         self.standardItemModel = None
         self.standardItemModelOutput = None
@@ -119,7 +119,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         new_df = pd.DataFrame(new_df_data, columns=self.core.get_columns())
         new_df[ALIVE_COLUMN] = self.core.predict(new_df)
-        df_for_delta = self.core.system.encoder.encode_df(new_df.iloc[-2:]).astype(float)
+        df_for_delta = self.core.fill_empty(new_df.iloc[-2:], encode_only=True)
+        # self.core.system.encoder.encode_df(new_df.iloc[-2:]).astype(float)
 
         delta_row = df_for_delta.iloc[-1] - df_for_delta.iloc[-2]
         new_df = pd.concat((new_df, pd.DataFrame([delta_row])))

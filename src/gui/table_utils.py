@@ -12,7 +12,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QStandardItem
 from PyQt5.QtWidgets import QTableView
 
-from core.core import Core
+from core.core_manager import CoreManager
 
 
 class ComboBoxDelegate(QtWidgets.QItemDelegate):
@@ -83,7 +83,7 @@ def getItem(item: Union[float, str, None], highlightColor: str = "#d4f5ff") -> Q
 
 class CustomTableView(QTableView):
     isEditable: bool
-    core: Optional[Core]
+    core: Optional[CoreManager]
     headers: Optional[List[str]]
 
     def __init__(self, parent, isEditable: bool = True):
@@ -98,7 +98,7 @@ class CustomTableView(QTableView):
     def setEditable(self, editable: bool):
         self.isEditable = editable
 
-    def setCore(self, core: Core):
+    def setCore(self, core: CoreManager):
         self.core = core
 
     def keyPressEvent(self, event: QKeyEvent):

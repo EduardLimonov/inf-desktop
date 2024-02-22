@@ -10,7 +10,7 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 
 from settings import settings
-from settings.defines import defines  # features, feature_limits, changeable_features, recommended_limits, feature_change_coef
+from settings.defines import defines
 from data.utils import LabelEncoderPool, get_train_test_final, get_xy, fit_predictor, ModelProcessor, ModelHandler, \
     CommonDataInfo
 
@@ -131,7 +131,7 @@ def _fit_model(df_raw: pd.DataFrame, target_column: str = "alive", train_size=0.
 
     X_test, y_test = get_xy(data_final_test)
 
-    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=40,
+    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=20,
                                                                          class_weight="balanced_subsample"))
 
     return _FitModelResults(
