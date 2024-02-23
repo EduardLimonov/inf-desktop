@@ -38,8 +38,9 @@ def plot_bar(p_pred, y_true, gt_label: str):
                        title="Распределение оценок выживания (тестовые данные)",
                        # pattern_shape=gt_label,
                        color=gt_label,
-                       barmode="stack")
-    fig.update_layout(bargap=0.2, yaxis_title="Количество пациентов", legend_title=gt_label, xaxis_title="Оценка",
+                       barmode="stack",
+                       nbins=20)
+    fig.update_layout(bargap=0.1, yaxis_title="Количество пациентов", legend_title=gt_label, xaxis_title="Оценка",
                       hovermode="x")
     return fig
 

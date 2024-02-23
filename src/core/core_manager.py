@@ -40,7 +40,7 @@ class CoreManager:
     def predict(self, df: pd.DataFrame) -> List[float]:
         ans = requests.post(
             self.url + "predict/",
-            data=HTTPBodyDf(dataframe_json=df.to_json()).json()  # dict(dataframe_json=df.to_json())
+            data=HTTPBodyDf(dataframe_json=df.to_json()).json()
         )
         return self.__get_result(
             json.loads(ans.text)
@@ -51,7 +51,19 @@ class CoreManager:
         if _pb is None:
             _pb = lambda x: x
 
-        pass
+        res = []
+        for _, row in _pb(df.iterrows()):
+            ans = requests.post(
+                self.url + "get_recommendations/",
+                data=HTTPBodyDf(dataframe_json=pd.DataFrame([row]).to_json(), method=method, target_p=target_p).json()
+            )
+            res.append(
+                pd.DataFrame.from_dict(json.loads(self.__get_result(
+                    json.loads(ans.text)
+                )))
+            )
+
+        return pd.concat(res)
 
     def get_test_data(self) -> XYTables:
         ans = requests.get(

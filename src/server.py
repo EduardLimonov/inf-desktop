@@ -30,7 +30,7 @@ async def predict(body: HTTPBodyDf):
 @app.post("/get_recommendations/")
 async def get_recommendations(body: HTTPBodyDf):
     return {RESULT_MARK: core.get_recommendations(
-        json.loads(body.dataframe_json),
+        pd.DataFrame.from_dict(json.loads(body.dataframe_json)),
         body.method,
         body.target_p
     ).to_json()}
