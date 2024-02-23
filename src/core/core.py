@@ -74,3 +74,6 @@ class Core:
         assert hasattr(defines, param_name), f"Defines settings has not attribute {param_name}"
 
         defines.set_attr(param_name, value)
+
+    def get_cat_feature_values(self, feature_name: str) -> List[str]:
+        return list(self.system.encoder.encoders[feature_name].classes_)

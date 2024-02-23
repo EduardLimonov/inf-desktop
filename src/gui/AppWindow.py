@@ -193,7 +193,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             feature_name = columns[idx]
             idx = columns.index(feature_name)
             if feature_name in cat_columns:
-                options = list(self.core.system.encoder.encoders[feature_name].classes_)
+                options = list(self.core.get_cat_feature_values(feature_name))
                 tableView.setItemDelegateForColumn(idx, ComboBoxDelegate(tableView, options))
             elif feature_name in all_features:
                 min_l, max_l = self.core.get_decoded_limits(feature_name)
@@ -211,7 +211,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             feature_name = columns[idx]
             idx = columns.index(feature_name)
             if feature_name in cat_columns:
-                options = list(self.core.system.encoder.encoders[feature_name].classes_)
+                options = list(self.core.get_cat_feature_values(feature_name))
                 if None not in options:
                     model.setItem(row_num, idx, QStandardItem(options[0]))
             elif feature_name == ALIVE_COLUMN:
