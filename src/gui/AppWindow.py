@@ -1,3 +1,4 @@
+from datetime import time, datetime
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -43,6 +44,9 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.showMaximized()
 
     def postSetup(self):
+        self.core.set_connection_error_fn(lambda s: self.connectionError(s))
+        self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
+
         # self.gridLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignJustify)
         self.gridLayout_8.addWidget(self.groupBox, 1, 1, 2, 1,
                                   QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft |
@@ -51,6 +55,25 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.progressBar.setVisible(False)
         self.progressBar_2.setVisible(False)
         self.initTables()
+
+    def connectionError(self, s: str):
+        QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
+        self.setCoreConnection()
+
+    def connectionOk(self, s: str):
+        self.statusbar.showMessage(
+            f"Соединение установлено {s} ({datetime.now().strftime('%H:%M:%S')})", 3000
+        )
+
+    def setCoreConnection(self, url: Optional[str] = None):
+        self.core.set_url(url)
+        connected, e = self.core.status
+        if connected:
+            self.connectionOk(f"(подключено ядро {url})")
+        else:
+            QtWidgets.QErrorMessage(self).showMessage(
+                f"Ошибка соединения: {str(e)}: не удалось подключиться к ядру {url}"
+            )
 
     def initConnections(self):
         self.pushButton_6.clicked.connect(lambda x: self.__update_example_recs(force_reload=True))

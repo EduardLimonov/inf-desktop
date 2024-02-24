@@ -12,6 +12,11 @@ core = Core()
 app = FastAPI()
 
 
+@app.get("/")
+async def check_connection():
+    return {RESULT_MARK: "CONNECTED"}
+
+
 @app.get("/get_columns")
 async def get_columns():
     return {RESULT_MARK: core.get_columns()}
