@@ -1,4 +1,6 @@
 import json
+import subprocess
+import time
 from typing import List, Tuple, Optional, Dict, Any, Callable
 
 import pandas as pd
@@ -7,15 +9,13 @@ import requests
 from core.http_utils import RESULT_MARK, HTTPBodyDf
 from data.initializers import XYTables
 from data.utils import CommonDataInfo
-
-
-STATUS_OK = 200
-LOCAL_URL = "http://127.0.0.1:8000/"
+from settings.network import network_settings
 
 
 class CoreManager:
 
     url: str
+    url_known: Dict[str, str]
     status: Tuple[bool, Optional[Exception]]
 
     connection_success_fn: Optional[Callable[[str], None]]
@@ -23,22 +23,48 @@ class CoreManager:
 
     errors_to_signal: Tuple[Exception, ...] = requests.ConnectionError, requests.ConnectTimeout
 
-    def __init__(self, url: Optional[str] = None):
+    def __init__(self, url: Optional[str] = None, url_name: Optional[str] = "локальное"):
+        self.__start_local_server()
+
         if url is None:
-            url = LOCAL_URL
+            url = network_settings.LOCAL_URL
 
         self.url = url
+        self.url_known = {url_name: url}
         self.connection_error_fn = None
         self.connection_success_fn = None
 
         self.status = self.__check_connection(url)
 
-    def set_url(self, url: Optional[str] = None):
-        if url is None:
-            url = LOCAL_URL
+    @staticmethod
+    def __start_local_server():
+        if not CoreManager.check_connection(network_settings.LOCAL_URL, 1e-4):
+            subprocess.Popen(network_settings.LOCAL_SERVER_START, shell=True)
 
-        self.url = url
-        self.status = self.__check_connection(url)
+            _cnt = 0
+            while not CoreManager.check_connection(network_settings.LOCAL_URL):
+                _cnt += 0.1
+                time.sleep(0.1)
+                if _cnt >= network_settings.MAX_SERVER_AWAIT_SEC:
+                    break
+
+    def set_url(self, url: Optional[str] = None, url_name: Optional[str] = "") -> bool:
+        if url is None and url_name:
+            url = network_settings.LOCAL_URL
+
+        status, e = self.__check_connection(url)
+        if status:
+            if url_name not in self.url_known:
+                self.url_known[url_name] = url
+            self.url = url
+            self.status = self.__check_connection(url)
+            return True
+        else:
+            self.connection_error_fn(f": не удалось подключиться к ядру {url}")
+            return False
+
+    def get_urls_known(self) -> Dict[str, str]:
+        return self.url_known.copy()
 
     def set_connection_error_fn(self, connection_error_fn: Callable[[str], None]):
         self.connection_error_fn = connection_error_fn
@@ -58,9 +84,12 @@ class CoreManager:
         return result[RESULT_MARK]
 
     @staticmethod
-    def check_connection(url: str = None) -> bool:
-        ans = requests.get(url)
-        return ans.status_code == STATUS_OK
+    def check_connection(url: str, timeout: float = network_settings.CONN_CHECK_TIMEOUT) -> bool:
+        try:
+            ans = requests.get(url, timeout=timeout)
+            return ans.status_code == network_settings.STATUS_OK
+        except CoreManager.errors_to_signal:
+            return False
 
     def get_columns(self) -> List[str]:
         try:

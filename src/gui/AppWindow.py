@@ -1,19 +1,21 @@
-from datetime import time, datetime
+from datetime import datetime
 from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QProgressBar
 
+from gui.core_mgmt_window import CoreMgmtWindow
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
 from core.core_manager import CoreManager
 from gui.plots import plot_figures
 from gui.table_utils import ComboBoxDelegate, DoubleDelegate, getItem, CustomTableView
 from settings import settings
+from settings.network import network_settings
+
 
 ID_COLUMN = "Идентификатор"
 ALIVE_COLUMN = "Оценка выживания"
@@ -37,15 +39,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.standardItemModelOutput = None
         self.core = core
         self.setupUi(self)
-        self.postSetup()
+
+        connection_ok = self.postSetup()
+        if not connection_ok:
+            return
+
         self.initConnections()
         self.__init_graph()
 
         self.showMaximized()
 
-    def postSetup(self):
-        self.core.set_connection_error_fn(lambda s: self.connectionError(s))
-        self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
+    def postSetup(self) -> bool:
+        connection_ok = self.init_core_manager()
+        if not connection_ok:
+            return False
 
         # self.gridLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignJustify)
         self.gridLayout_8.addWidget(self.groupBox, 1, 1, 2, 1,
@@ -55,10 +62,42 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.progressBar.setVisible(False)
         self.progressBar_2.setVisible(False)
         self.initTables()
+        return True
+
+    def init_core_manager(self) -> bool:
+        self.core.set_connection_error_fn(lambda s: self.connectionError(s))
+        self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
+        if not self.core.check_connection(network_settings.LOCAL_URL):
+            msg = QtWidgets.QErrorMessage(self)
+            msg.showMessage(
+                f"Ошибка соединения: локальное ядро не может быть использовано. Работа приложения невозможна.",
+            )
+            msg.setWindowTitle("Ошибка")
+            return False
+
+        self.__init_core_manager_widgets()
+        return True
+
+    def __init_core_manager_widgets(self):
+        urls_known = self.core.get_urls_known()
+        self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
+        index_to_params_mapper = tuple((_url, _name) for _name, _url in urls_known.items())
+
+        self.pushButton_7.clicked.connect(lambda e, mapper=index_to_params_mapper: self.core.set_url(
+            *mapper[self.comboBox.currentIndex()]
+        ))
+
+        self.pushButton_8.clicked.connect(lambda e: self.mgmt_connections_window())
+
+    def mgmt_connections_window(self):
+        child = CoreMgmtWindow(self, self.core)
+        child.show()
+        self.setEnabled(False)
 
     def connectionError(self, s: str):
         QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
-        self.setCoreConnection()
+        if self.core.url != network_settings.LOCAL_URL:
+            self.setCoreConnection()
 
     def connectionOk(self, s: str):
         self.statusbar.showMessage(
