@@ -6,8 +6,10 @@ class NetworkSettings(BaseModel):
     PORT = 8000
     LOCAL_URL = f"http://127.0.0.1:{PORT}/"
     LOCAL_SERVER_START = f"uvicorn src.server:app --port {PORT}"
+    KILL_LOCAL_SERVER = "kill -9 {pid}"
     CONN_CHECK_TIMEOUT = 4
     MAX_SERVER_AWAIT_SEC = 5
+    DEFAULT_LOCAL_NAME = "локальное"
 
 
 network_settings = NetworkSettings()

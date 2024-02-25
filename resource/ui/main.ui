@@ -26,7 +26,7 @@
       <item alignment="Qt::AlignLeft">
        <widget class="QFrame" name="coreFrame">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -39,7 +39,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>483</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -50,7 +50,7 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <property name="sizeConstraint">
-            <enum>QLayout::SetDefaultConstraint</enum>
+            <enum>QLayout::SetNoConstraint</enum>
            </property>
            <item>
             <widget class="QLabel" name="label_9">
@@ -68,7 +68,7 @@
            <item>
             <widget class="QComboBox" name="comboBox">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -97,7 +97,7 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Управление ядрами</string>
+              <string>Управление ядрами...</string>
              </property>
             </widget>
            </item>

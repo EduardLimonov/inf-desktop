@@ -1,15 +1,16 @@
 from __future__ import annotations
+
+import json
 import os
-import pickle
-from dataclasses import dataclass
-from typing import Tuple
+from typing import List
+
+from pydantic import BaseModel
 
 from settings import settings
 
 
-@dataclass
-class Defines:
-    unchangeable_features: Tuple[str] = (
+class Defines(BaseModel):
+    unchangeable_features: List[str] = [
         'срсод2', 'диастолическое артериальное давление при поступлении',
         'частота сердечных сокращений при поступлении', 'рост', 'АСТ',
         'ширина распределения эритроцитов (RDW-SD))', 'эритроц2', 'сробем2',
@@ -26,7 +27,7 @@ class Defines:
         'сосуд.рис', 'гипотиреоз', 'дислипидемия',
         'артериальная гипертензия', ' хронический бронхит', 'гепатоз', 'ожирение', 'потеря веса', 'ПИКС количество',
         'МА', 'острая сердечная недостаточность по Killip', 'ТЭЛА',
-    )
+    ]
     features = [
         'ПТИ',
         'ТЭЛА',
@@ -91,14 +92,16 @@ class Defines:
     def save_defines(self):
         os.makedirs(os.path.dirname(settings.defines_path), exist_ok=True)
 
-        with open(settings.defines_path, "wb") as f:
-            pickle.dump(self, f)
+        with open(settings.defines_path, "w") as f:
+            json.dump(self.dict(), f, ensure_ascii=False, sort_keys=False, indent=4)
+            # pickle.dump(self, f)
 
     @staticmethod
     def create_defines(save_when_init: bool = True) -> Defines:
         if os.path.exists(settings.defines_path):
-            with open(settings.defines_path, "rb") as f:
-                return pickle.load(f)
+            with open(settings.defines_path, "r") as f:
+                # return pickle.load(f)
+                return Defines(**json.load(f))
         else:
             res = Defines.__init_defines(Defines())
 

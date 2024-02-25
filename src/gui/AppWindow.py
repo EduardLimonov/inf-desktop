@@ -81,6 +81,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init_core_manager_widgets(self):
         urls_known = self.core.get_urls_known()
         self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
+        self.comboBox.setCurrentIndex(list(urls_known.keys()).index(self.core.url_name))
         index_to_params_mapper = tuple((_url, _name) for _name, _url in urls_known.items())
 
         self.pushButton_7.clicked.connect(lambda e, mapper=index_to_params_mapper: self.core.set_url(
@@ -88,11 +89,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ))
 
         self.pushButton_8.clicked.connect(lambda e: self.mgmt_connections_window())
+        # self.pushButton_8.showMaximized()
 
     def mgmt_connections_window(self):
+        self.setEnabled(False)
         child = CoreMgmtWindow(self, self.core)
         child.show()
-        self.setEnabled(False)
 
     def connectionError(self, s: str):
         QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
@@ -106,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def setCoreConnection(self, url: Optional[str] = None):
         self.core.set_url(url)
-        connected, e = self.core.status
+        connected, e = self.core._status
         if connected:
             self.connectionOk(f"(подключено ядро {url})")
         else:
