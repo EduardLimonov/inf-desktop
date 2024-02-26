@@ -1,16 +1,19 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable, Dict
 
 import pandas as pd
 
+from core.base_core import CoreInterface
 from data.data_handler import ProcessHandler
 from data.initializers import init_all, System, XYTables
 from data.utils import CommonDataInfo
 from settings import settings
 from settings.defines import defines
+from settings.network import network_settings
 
 
-class Core:
+class Core(CoreInterface):
     system: System
+
     _core: ProcessHandler
 
     def __init__(self, path: str = settings.dataset_path):
@@ -18,6 +21,47 @@ class Core:
         self._core = ProcessHandler(
             self.system.encoder, self.system.processor, self.system.data_info, self.system.model
         )
+
+    def url_switch_is_enable(self) -> bool:
+        return False
+
+    def get_status(self) -> Tuple[bool, Optional[Exception]]:
+        return True, None
+
+    def shutdown_server_if_started(self):
+        pass
+
+    @staticmethod
+    def force_remove_server():
+        pass
+
+    def add_url(self, url: str, url_name: str) -> bool:
+        return False
+
+    def set_url(self, url: Optional[str] = None, url_name: Optional[str] = "") -> bool:
+        return True
+
+    def remove_url(self, url_name: str) -> bool:
+        return False
+
+    def get_url(self) -> str:
+        return network_settings.NON_SERVER_CORE_URL
+
+    def get_url_name(self) -> str:
+        return network_settings.NON_SERVER_CORE_NAME
+
+    def get_urls_known(self) -> Dict[str, str]:
+        return {network_settings.NON_SERVER_CORE_NAME: network_settings.NON_SERVER_CORE_URL}
+
+    def set_connection_error_fn(self, connection_error_fn: Callable[[str], None]):
+        pass
+
+    def set_connection_success_fn(self, connection_success_fn: Callable[[str], None]):
+        pass
+
+    @staticmethod
+    def check_connection(url: str, timeout: float = network_settings.CONN_CHECK_TIMEOUT) -> bool:
+        return True
 
     def get_columns(self) -> List[str]:
         return self.system.data_info.num_to_column_mapper
@@ -69,8 +113,7 @@ class Core:
         df_dec = self._core.decode_data(df_enc_resc_fill, rescale=True)
         return df_dec
 
-    @staticmethod
-    def set_define(param_name: str, value: str):
+    def set_define(self, param_name: str, value: str):
         assert hasattr(defines, param_name), f"Defines settings has not attribute {param_name}"
 
         defines.set_attr(param_name, value)

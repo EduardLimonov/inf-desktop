@@ -101,6 +101,13 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_9">
+             <property name="text">
+              <string>Отключить ядра</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
         </layout>

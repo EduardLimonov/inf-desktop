@@ -10,6 +10,8 @@ class NetworkSettings(BaseModel):
     CONN_CHECK_TIMEOUT = 4
     MAX_SERVER_AWAIT_SEC = 5
     DEFAULT_LOCAL_NAME = "локальное"
+    NON_SERVER_CORE_URL = "<...>"
+    NON_SERVER_CORE_NAME = "встроенное"
 
 
 network_settings = NetworkSettings()

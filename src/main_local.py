@@ -5,7 +5,7 @@ sys.path.append("..")
 
 
 def main():
-    restart_fn(True)
+    restart_fn(False)
 
 
 if __name__ == "__main__":

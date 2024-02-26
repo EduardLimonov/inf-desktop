@@ -3,12 +3,14 @@ import json
 import pandas as pd
 from fastapi import FastAPI
 import sys
+
 sys.path.append("src")
 
-from core.core import Core
+from core.core_factory import CoreFactory
+
 from core.http_utils import HTTPBodyDf, RESULT_MARK
 
-core = Core()
+core = CoreFactory.create_core(create_core_manager=False)
 app = FastAPI()
 
 

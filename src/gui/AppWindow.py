@@ -1,5 +1,6 @@
+import multiprocessing as mp
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Callable
 
 import numpy as np
 import pandas as pd
@@ -7,10 +8,11 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QProgressBar
 
+from core.base_core import CoreInterface
+from core.core_factory import CoreFactory
 from gui.core_mgmt_window import CoreMgmtWindow
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
-from core.core_manager import CoreManager
 from gui.plots import plot_figures
 from gui.table_utils import ComboBoxDelegate, DoubleDelegate, getItem, CustomTableView
 from settings import settings
@@ -29,16 +31,19 @@ TYPE_DELTA = "Дельта"
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    core: CoreManager
+    core: CoreInterface
     standardItemModel: Optional[QStandardItemModel]
     standardItemModelOutput: Optional[QStandardItemModel]
+    restart_fn: Callable
 
-    def __init__(self, core: CoreManager):
+    def __init__(self, core: CoreInterface, restart_fn: Callable):
         super().__init__()
+        self.restart_fn = restart_fn
         self.standardItemModel = None
         self.standardItemModelOutput = None
         self.core = core
         self.setupUi(self)
+        self.coreFrame.setEnabled(self.core.url_switch_is_enable())
 
         connection_ok = self.postSetup()
         if not connection_ok:
@@ -54,7 +59,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if not connection_ok:
             return False
 
-        # self.gridLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignJustify)
         self.gridLayout_8.addWidget(self.groupBox, 1, 1, 2, 1,
                                   QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft |
                                   QtCore.Qt.AlignmentFlag.AlignTop)
@@ -68,20 +72,32 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.core.set_connection_error_fn(lambda s: self.connectionError(s))
         self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
         if not self.core.check_connection(network_settings.LOCAL_URL):
-            msg = QtWidgets.QErrorMessage(self)
-            msg.showMessage(
-                f"Ошибка соединения: локальное ядро не может быть использовано. Работа приложения невозможна.",
-            )
-            msg.setWindowTitle("Ошибка")
-            return False
+            self.__switch_to_non_server()
 
         self.__init_core_manager_widgets()
         return True
 
+    def __switch_to_non_server(self):
+        self.setEnabled(False)
+        msg = QtWidgets.QErrorMessage()
+        msg.showMessage(
+            f"Ошибка соединения: локальное ядро не может быть использовано. Приложение будет переключено в режим "
+            f"встроенного ядра.",
+        )
+        msg.setWindowTitle("Ошибка")
+        msg.exec_()
+
+        self.core.shutdown_server_if_started()
+        self.core = CoreFactory.create_core(create_core_manager=False)
+        self.close()
+
+        mp.set_start_method('spawn')
+        pr = mp.Process(target=self.restart_fn, )
+        pr.start()
+
     def __init_core_manager_widgets(self):
         urls_known = self.core.get_urls_known()
-        self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
-        self.comboBox.setCurrentIndex(list(urls_known.keys()).index(self.core.url_name))
+        self.update_connections_items()
         index_to_params_mapper = tuple((_url, _name) for _name, _url in urls_known.items())
 
         self.pushButton_7.clicked.connect(lambda e, mapper=index_to_params_mapper: self.core.set_url(
@@ -89,7 +105,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ))
 
         self.pushButton_8.clicked.connect(lambda e: self.mgmt_connections_window())
-        # self.pushButton_8.showMaximized()
+        self.pushButton_9.clicked.connect(self.__switch_to_non_server)
+
+    def update_connections_items(self):
+        self.comboBox.clear()
+        urls_known = self.core.get_urls_known()
+        self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
+        self.comboBox.setCurrentIndex(list(urls_known.keys()).index(self.core.get_url_name()))
 
     def mgmt_connections_window(self):
         self.setEnabled(False)
@@ -98,8 +120,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def connectionError(self, s: str):
         QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
-        if self.core.url != network_settings.LOCAL_URL:
+        if self.core.get_url() != network_settings.LOCAL_URL:
             self.setCoreConnection()
+        else:
+            self.__switch_to_non_server()
 
     def connectionOk(self, s: str):
         self.statusbar.showMessage(
@@ -108,13 +132,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def setCoreConnection(self, url: Optional[str] = None):
         self.core.set_url(url)
-        connected, e = self.core._status
+        connected, e = self.core.get_status()
         if connected:
             self.connectionOk(f"(подключено ядро {url})")
         else:
             QtWidgets.QErrorMessage(self).showMessage(
                 f"Ошибка соединения: {str(e)}: не удалось подключиться к ядру {url}"
             )
+            if self.core.get_url() == network_settings.LOCAL_URL and not connected:
+                self.__switch_to_non_server()
 
     def initConnections(self):
         self.pushButton_6.clicked.connect(lambda x: self.__update_example_recs(force_reload=True))
@@ -184,7 +210,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         new_df = pd.DataFrame(new_df_data, columns=self.core.get_columns())
         new_df[ALIVE_COLUMN] = self.core.predict(new_df)
         df_for_delta = self.core.fill_empty(new_df.iloc[-2:], encode_only=True)
-        # self.core.system.encoder.encode_df(new_df.iloc[-2:]).astype(float)
 
         delta_row = df_for_delta.iloc[-1] - df_for_delta.iloc[-2]
         new_df = pd.concat((new_df, pd.DataFrame([delta_row])))
@@ -200,7 +225,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             model.appendRow([getItem(item) for item in row])
 
     def __getInput(self) -> Tuple[List[str], pd.DataFrame]:
-        # TODO: double validator comma sep
         res = []
         for r in range(self.standardItemModel.rowCount()):
             row = [self.standardItemModel.data(self.standardItemModel.index(r, c))
@@ -212,8 +236,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return res[ID_COLUMN].tolist(), res[self.core.get_columns()]
 
     def setResultsVisible(self, visible: bool):
-        # for w in (self.label_2, self.tableView_2, self.pushButton_3):
-        #     w.setVisible(visible)
         self.widgetTrBottom.setVisible(visible)
 
     def showResults(self):

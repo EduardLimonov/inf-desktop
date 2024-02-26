@@ -9,9 +9,8 @@ import killport
 
 import pandas as pd
 import requests
-from pydantic import BaseModel, Field
-from pydantic.typing import Annotated
 
+from core.base_core import CoreInterface
 from core.http_utils import RESULT_MARK, HTTPBodyDf
 from data.initializers import XYTables
 from data.utils import CommonDataInfo
@@ -19,12 +18,13 @@ from settings import settings
 from settings.network import network_settings
 
 
-class CoreManager:
+class CoreManager(CoreInterface):
 
     url: Optional[str]
-    url_name: Optional[str]
-    url_known: Optional[Dict[str, str]]
 
+    url_name: Optional[str]
+
+    url_known: Optional[Dict[str, str]]
     _status: Tuple[bool, Optional[Exception]]
     _process_created: Optional[subprocess.Popen]
 
@@ -59,16 +59,22 @@ class CoreManager:
 
         self._status = self.__check_connection(url)
 
+    def url_switch_is_enable(self) -> bool:
+        return True
+
+    def get_status(self) -> Tuple[bool, Optional[Exception]]:
+        return self._status
+
     @staticmethod
     def init_from_factory() -> CoreManager:
         if os.path.exists(settings.core_manager_path):
-            return CoreManager.load(settings.core_manager_path)
+            return CoreManager.__load(settings.core_manager_path)
         else:
             cm = CoreManager()
-            cm.save(settings.core_manager_path)
+            cm.__save(settings.core_manager_path)
             return cm
 
-    def save(self, path: str = settings.core_manager_path):
+    def __save(self, path: str = settings.core_manager_path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(settings.core_manager_path, "w") as f:
             json.dump(self.__dict(), f, ensure_ascii=False, sort_keys=False, indent=4)
@@ -77,7 +83,7 @@ class CoreManager:
         return {v: getattr(self, v) for v in ("url", "url_known", "url_name")}
 
     @staticmethod
-    def load(path: str = settings.core_manager_path) -> CoreManager:
+    def __load(path: str = settings.core_manager_path) -> CoreManager:
         with open(path, "r") as f:
             return CoreManager(**json.load(f))
 
@@ -94,15 +100,25 @@ class CoreManager:
                 if _cnt >= network_settings.MAX_SERVER_AWAIT_SEC:
                     break
 
-    def remove(self):
+    def shutdown_server_if_started(self):
         # may be in __dell__()?
         if self._process_created is not None:
-            killport.kill_ports(ports=[network_settings.PORT])
+            self.force_remove_server()
+
+    @staticmethod
+    def force_remove_server():
+        killport.kill_ports(ports=[network_settings.PORT])
+
+    def get_url(self) -> str:
+        return self.url
+
+    def get_url_name(self) -> str:
+        return self.url_name
 
     def add_url(self, url: str, url_name: str) -> bool:
         assert url_name not in self.url_known
         self.url_known[url_name] = url
-        self.save()
+        self.__save()
         return self.check_connection(url)
 
     def set_url(self, url: Optional[str] = None, url_name: Optional[str] = "") -> bool:
@@ -116,7 +132,7 @@ class CoreManager:
             self.url = url
             self.url_name = url_name
             self._status = self.__check_connection(url)
-            self.save()
+            self.__save()
             return True
         else:
             self._connection_error_fn(f": не удалось подключиться к ядру {url}")
@@ -127,7 +143,7 @@ class CoreManager:
             return False
         else:
             self.url_known.pop(url_name)
-            self.save()
+            self.__save()
             return True
 
     def get_urls_known(self) -> Dict[str, str]:

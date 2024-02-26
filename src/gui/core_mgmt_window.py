@@ -4,17 +4,16 @@ from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLayout, QHeaderView, QWidget, QLabel, \
     QPushButton, QErrorMessage
 
-from core.core_manager import CoreManager
+from core.base_core import CoreInterface
 from settings.network import network_settings
 
 
 class CoreMgmtWindow(QMainWindow):
 
-    core: CoreManager
+    core: CoreInterface
     tableModel: List[Tuple[str, str]]
-    # parent_window: QMainWindow
 
-    def __init__(self, parent, core: CoreManager):
+    def __init__(self, parent, core: CoreInterface):
         super().__init__(parent)  # parent)
         self.setWindowTitle("Управление ядрами")
         self.tableModel = []
@@ -141,7 +140,4 @@ class CoreMgmtWindow(QMainWindow):
 
     def closeEvent(self, event):
         self.parent().setEnabled(True)
-
-
-
-
+        self.parent().update_connections_items()
