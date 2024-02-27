@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMainWindow, QTableWidget, QTableWidgetItem, QVBoxLa
     QPushButton, QErrorMessage
 
 from core.base_core import CoreInterface
+from gui.core_callback_secure import core_callback_secure
 from settings.network import network_settings
 
 
@@ -24,6 +25,7 @@ class CoreMgmtWindow(QMainWindow):
         self.setMinimumSize(700, 400)
         self.setEnabled(True)
 
+    @core_callback_secure
     def setupUI(self):
         self.tableModel.clear()
         self.centralWidget = QWidget(self)
@@ -51,6 +53,7 @@ class CoreMgmtWindow(QMainWindow):
 
         self.table.cellChanged.connect(self.cellChanged)
 
+    @core_callback_secure
     def cellChanged(self, row, column):
         if row >= len(self.tableModel):
             return
@@ -76,9 +79,11 @@ class CoreMgmtWindow(QMainWindow):
         else:
             self.table.setItem(row, column, QTableWidgetItem(name_old if column == 0 else url_old))
 
+    @core_callback_secure
     def __check_connection_name(self, name: str) -> bool:
         return name not in self.core.get_urls_known()
 
+    @core_callback_secure
     def __check_connection_url(self, url: str) -> bool:
         return self.core.check_connection(url)
 
@@ -107,6 +112,7 @@ class CoreMgmtWindow(QMainWindow):
         msg.setWindowTitle("Ошибка")
         msg.showMessage(error_text)
 
+    @core_callback_secure
     def __add_connection(self, row: int):
         url_name, url = self.table.item(row, 0).text(), self.table.item(row, 1).text()
         if not url.endswith("/"):
@@ -123,6 +129,7 @@ class CoreMgmtWindow(QMainWindow):
             self.centralWidget.hide()
             self.setupUI()
 
+    @core_callback_secure
     def __remove_connection(self, row: int):
         url_name = self.table.item(row, 0).text()
         result = self.core.remove_url(url_name)

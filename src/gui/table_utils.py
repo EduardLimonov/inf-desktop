@@ -11,6 +11,7 @@ from PyQt5.QtGui import QStandardItem
 from PyQt5.QtWidgets import QTableView
 
 from core.base_core import CoreInterface
+from gui.core_callback_secure import core_callback_secure
 
 
 class ComboBoxDelegate(QtWidgets.QItemDelegate):
@@ -129,6 +130,7 @@ class CustomTableView(QTableView):
                         if self.validate(idx.column() + j, columnContents[j]):
                             self.model().setData(self.model().index(idx.row() + i, idx.column() + j), columnContents[j])
 
+    @core_callback_secure
     def validate(self, column: int, content: str) -> bool:
         if self.core is None or self.headers is None:
             return True

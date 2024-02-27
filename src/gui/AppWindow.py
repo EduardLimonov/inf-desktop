@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import QProgressBar
 
 from core.base_core import CoreInterface
 from core.core_factory import CoreFactory
+from gui.core_callback_secure import core_callback_secure
 from gui.core_mgmt_window import CoreMgmtWindow
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
@@ -54,6 +55,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.showMaximized()
 
+    @core_callback_secure
     def postSetup(self) -> bool:
         connection_ok = self.init_core_manager()
         if not connection_ok:
@@ -68,6 +70,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.initTables()
         return True
 
+    @core_callback_secure
     def init_core_manager(self) -> bool:
         self.core.set_connection_error_fn(lambda s: self.connectionError(s))
         self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
@@ -95,6 +98,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         pr = mp.Process(target=self.restart_fn, )
         pr.start()
 
+    @core_callback_secure
     def __init_core_manager_widgets(self):
         urls_known = self.core.get_urls_known()
         self.update_connections_items()
@@ -107,17 +111,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pushButton_8.clicked.connect(lambda e: self.mgmt_connections_window())
         self.pushButton_9.clicked.connect(self.__switch_to_non_server)
 
+    @core_callback_secure
     def update_connections_items(self):
         self.comboBox.clear()
         urls_known = self.core.get_urls_known()
         self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
         self.comboBox.setCurrentIndex(list(urls_known.keys()).index(self.core.get_url_name()))
 
+    @core_callback_secure
     def mgmt_connections_window(self):
         self.setEnabled(False)
         child = CoreMgmtWindow(self, self.core)
         child.show()
 
+    @core_callback_secure
     def connectionError(self, s: str):
         QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
         if self.core.get_url() != network_settings.LOCAL_URL:
@@ -130,6 +137,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             f"Соединение установлено {s} ({datetime.now().strftime('%H:%M:%S')})", 3000
         )
 
+    @core_callback_secure
     def setCoreConnection(self, url: Optional[str] = None):
         self.core.set_url(url)
         connected, e = self.core.get_status()
@@ -159,6 +167,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if increase:
             self.__set_default_values(self.standardItemModel)
 
+    @core_callback_secure
     def predict(self):
         ids, inps = self.__getInput()
         if len(inps) == 0:
@@ -170,6 +179,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.tableView.resizeColumnsToContents()
 
+    @core_callback_secure
     def optimResult(self, table: CustomTableView = None, pbar: QProgressBar = None):
         if table is None:
             table = self.tableView_2
@@ -189,6 +199,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.__outputResult(ids, inp, result, table=table)
         pbar.setVisible(False)
 
+    @core_callback_secure
     def __outputResult(self, ids: List[str], inp: pd.DataFrame, result: pd.DataFrame,
                        table: Optional[CustomTableView] = None):
         if table is None:
@@ -200,6 +211,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         table.resizeColumnsToContents()
 
+    @core_callback_secure
     def __getDfForRecord(self, id_str: str, row_inp: np.ndarray, row_res: np.ndarray) -> pd.DataFrame:
         new_df_data = [row_inp]
         if any([r is None for r in row_inp]):
@@ -219,11 +231,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         new_df[ID_COLUMN] = id_str
         return new_df[[ID_COLUMN, TYPE_COLUMN, ALIVE_COLUMN, *self.core.get_columns()]]
 
+    @core_callback_secure
     def __addResultRows(self, id_str: str, row_inp: np.ndarray, row_res: np.ndarray, model: QStandardItemModel):
         new_df = self.__getDfForRecord(id_str, row_inp, row_res)
         for i, row in new_df.iterrows():
             model.appendRow([getItem(item) for item in row])
 
+    @core_callback_secure
     def __getInput(self) -> Tuple[List[str], pd.DataFrame]:
         res = []
         for r in range(self.standardItemModel.rowCount()):
@@ -241,12 +255,15 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
     def showResults(self):
         self.label_2.setVisible(True)
 
+    @core_callback_secure
     def __get_input_columns(self) -> List[str]:
         return [ID_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
+    @core_callback_secure
     def __get_output_columns(self) -> List[str]:
         return [ID_COLUMN, TYPE_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
+    @core_callback_secure
     def __get_example_predict_columns(self) -> List[str]:
         return [ID_COLUMN, ALIVE_GT_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
@@ -271,6 +288,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ):
             self.__initTable(table, model, columns, init_delegates)
 
+    @core_callback_secure
     def __init_column(self, tableView: QtWidgets.QTableView, columns):
         cat_columns = self.core.get_data_info().cat_features
         all_features = self.core.get_columns()
@@ -286,6 +304,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 bottom, top, decimals = min_l, max_l, 4
                 tableView.setItemDelegateForColumn(idx, DoubleDelegate(tableView, bottom, top, decimals))
 
+    @core_callback_secure
     def __set_default_values(self, model: QStandardItemModel, row_num: Optional[int] = None):
         if row_num is None:
             row_num = model.rowCount() - 1
@@ -323,6 +342,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         tableView.resizeColumnsToContents()
 
+    @core_callback_secure
     def __init_graph(self):
         test_xy = self.core.get_test_data()
         test_df = test_xy.X.copy()
@@ -346,6 +366,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.__update_example_recs()
 
+    @core_callback_secure
     def __update_example_recs(self, force_reload: bool = False):
         test_xy = self.core.get_test_data()
 
@@ -355,6 +376,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         recs = self.__get_example_recommendations(bad_X, force_reload=force_reload)
         self.__outputResult(ids, inp=bad_X[self.core.get_columns()], result=recs, table=self.tableView_4)
 
+    @core_callback_secure
     def __get_example_recommendations(self, df: pd.DataFrame, force_reload=False):
         if not settings.recalc_test and not force_reload:
             rec = pd.read_csv(settings.test_recom_path)
