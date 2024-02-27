@@ -26,7 +26,7 @@ async def get_columns():
 
 @app.get("/check_correct_feature")
 async def check_correct_feature(feature_name: str, value: str):
-    return {RESULT_MARK: core.check_correct_feature(feature_name, value)}
+    return {RESULT_MARK: bool(core.check_correct_feature(feature_name, value))}
 
 
 @app.post("/predict/")
