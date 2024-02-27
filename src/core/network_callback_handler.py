@@ -1,9 +1,9 @@
 from typing import Callable
 
-from logs.logs import logger
+from core.core_manager import logger
 
 
-def core_callback_secure(fn: Callable):
+def network_callback_handler(fn: Callable):
     def wrapped(*args, **kwargs):
         try:
             logger.debug(f"Try to execute network-dependent function {fn.__name__}")

@@ -14,6 +14,7 @@ from core.base_core import CoreInterface
 from core.http_utils import RESULT_MARK, HTTPBodyDf
 from data.initializers import XYTables
 from data.utils import CommonDataInfo
+from logs.logs import logger
 from settings import settings
 from settings.network import network_settings
 
@@ -188,6 +189,7 @@ class CoreManager(CoreInterface):
         )
 
     def check_correct_feature(self, feature_name: str, value: str) -> bool:
+        logger.info(f"Try to execute check_correct_feature")
         try:
             ans = requests.get(
                 self.url + "check_correct_feature",

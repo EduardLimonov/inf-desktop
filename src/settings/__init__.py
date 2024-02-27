@@ -11,5 +11,8 @@ class Settings:
     defines_path = "resource/defines/defines.json"
     core_manager_path = "resource/core_manager/core_manager.json"
 
+    WITH_FILE_LOGGER: bool = True
+    FILE_LOGGER_PATH = "logs/logs.log"
+
 
 settings = Settings()
