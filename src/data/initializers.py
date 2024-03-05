@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from dataclasses import dataclass
@@ -10,15 +11,30 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 
 from settings import settings
-from settings.defines import features, feature_limits, changeable_features, recommended_limits, feature_change_coef
+from settings.defines import defines
 from data.utils import LabelEncoderPool, get_train_test_final, get_xy, fit_predictor, ModelProcessor, ModelHandler, \
     CommonDataInfo
+
+
+NAN_MARK = "NAN"
 
 
 @dataclass
 class XYTables:
     X: pd.DataFrame
     y: pd.Series
+
+    def to_dict(self) -> Dict[str, Dict]:
+        return {
+            "X": self.X.fillna(NAN_MARK).to_dict(),
+            "y": self.y.fillna(NAN_MARK).to_dict()
+        }
+
+    @staticmethod
+    def from_dict(dct: Dict):
+        X = pd.DataFrame.from_dict(dct["X"]).replace(NAN_MARK, np.nan)
+        y = pd.Series(dct["y"]).replace(NAN_MARK, np.nan)
+        return XYTables(X, y)
 
 
 @dataclass
@@ -57,14 +73,14 @@ def init_all(data_path: str) -> System:
         data["alive"] = data["alive"].apply(lambda x: int(x == "выжившие"))
         data["тропонин"] = data["тропонин"].apply(replace_diap)  # чтобы заменить численный диапазон на число
 
-        cols = sorted(list(data.columns), key=lambda x: 1 if x in changeable_features else 0, reverse=True)
+        cols = sorted(list(data.columns), key=lambda x: 1 if x in defines.changeable_features else 0, reverse=True)
         data = data[cols]
 
         return data
 
     data = load_data(data_path)
     fr = _init_results(data)
-    encoder = _init_encoder(data[features])
+    encoder = _init_encoder(data[defines.features])
 
     processor = _init_processor(fr)
     model = _init_model(fr)
@@ -77,10 +93,10 @@ def init_all(data_path: str) -> System:
 
 def _init_common_data_info(x: pd.DataFrame, cat_columns: List[str]) -> CommonDataInfo:
     return CommonDataInfo(
-        _get_limits(x, feature_limits),
-        recommended_limits,
-        changeable_features,
-        feature_change_coef,
+        _get_limits(x, defines.feature_limits),
+        defines.recommended_limits,
+        defines.changeable_features,
+        defines.feature_change_coef,
         list(x.columns),
         cat_columns
     )
@@ -119,7 +135,7 @@ def _init_model(f_model: _FitModelResults) -> ModelHandler:
 
 
 def _fit_model(df_raw: pd.DataFrame, target_column: str = "alive", train_size=0.7) -> _FitModelResults:
-    df_raw = df_raw[[*features, target_column]]
+    df_raw = df_raw[[*defines.features, target_column]]
     le = _init_encoder(df_raw.drop(target_column, axis=1))
     df = le.encode_df(df_raw)
 
@@ -131,7 +147,8 @@ def _fit_model(df_raw: pd.DataFrame, target_column: str = "alive", train_size=0.
 
     X_test, y_test = get_xy(data_final_test)
 
-    model = fit_predictor(X_train, y_train, model=RandomForestClassifier())  # class_weight="balanced_subsample"))
+    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=20,
+                                                                         class_weight="balanced_subsample"))
 
     return _FitModelResults(
         model[0],

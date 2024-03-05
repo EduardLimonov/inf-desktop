@@ -1,18 +1,17 @@
-import csv
-import io
 from typing import Union, Optional, List
 
 import pandas as pd
-from PyQt5.QtWidgets import QApplication, QStyleOptionComboBox, QStyle, QItemDelegate
+from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QKeySequence
-from PyQt5.QtCore import Qt, QLocale
+from PyQt5.QtCore import QLocale
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtGui import QBrush, QColor
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtGui import QStandardItem
 from PyQt5.QtWidgets import QTableView
 
-from core.core import Core
+from core.base_core import CoreInterface
+from gui.core_callback_secure import core_callback_secure
 
 
 class ComboBoxDelegate(QtWidgets.QItemDelegate):
@@ -83,7 +82,7 @@ def getItem(item: Union[float, str, None], highlightColor: str = "#d4f5ff") -> Q
 
 class CustomTableView(QTableView):
     isEditable: bool
-    core: Optional[Core]
+    core: Optional[CoreInterface]
     headers: Optional[List[str]]
 
     def __init__(self, parent, isEditable: bool = True):
@@ -98,7 +97,7 @@ class CustomTableView(QTableView):
     def setEditable(self, editable: bool):
         self.isEditable = editable
 
-    def setCore(self, core: Core):
+    def setCore(self, core: CoreInterface):
         self.core = core
 
     def keyPressEvent(self, event: QKeyEvent):
@@ -131,6 +130,7 @@ class CustomTableView(QTableView):
                         if self.validate(idx.column() + j, columnContents[j]):
                             self.model().setData(self.model().index(idx.row() + i, idx.column() + j), columnContents[j])
 
+    @core_callback_secure
     def validate(self, column: int, content: str) -> bool:
         if self.core is None or self.headers is None:
             return True
@@ -139,5 +139,3 @@ class CustomTableView(QTableView):
         if col_name not in self.core.get_columns():
             return True
         return self.core.check_correct_feature(col_name, content)
-
-

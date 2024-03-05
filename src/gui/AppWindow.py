@@ -1,22 +1,28 @@
-from typing import List, Optional, Tuple
+import multiprocessing as mp
+from datetime import datetime
+from typing import List, Optional, Tuple, Callable
 
 import numpy as np
 import pandas as pd
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QProgressBar
 
+from core.base_core import CoreInterface
+from core.core_factory import CoreFactory
+from gui.core_callback_secure import core_callback_secure
+from gui.core_mgmt_window import CoreMgmtWindow
 from gui.custom_pb import CustomPB
 from gui.design import Ui_MainWindow
-from core.core import Core
-from gui.plots import plot_accuracy, plot_figures
+from gui.plots import plot_figures
 from gui.table_utils import ComboBoxDelegate, DoubleDelegate, getItem, CustomTableView
 from settings import settings
+from settings.network import network_settings
+
 
 ID_COLUMN = "Идентификатор"
 ALIVE_COLUMN = "Оценка выживания"
-ALIVE_GT_COLUMN = "Выжил"
+ALIVE_GT_COLUMN = "Госпит. летальность"
 TYPE_COLUMN = "Тип записи"
 TYPE_START_STATE = "Исходное сост."
 TYPE_START_STATE_EMPTY = "Исходное сост. *"
@@ -26,24 +32,35 @@ TYPE_DELTA = "Дельта"
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    core: Core
+    core: CoreInterface
     standardItemModel: Optional[QStandardItemModel]
     standardItemModelOutput: Optional[QStandardItemModel]
+    restart_fn: Callable
 
-    def __init__(self, core: Core):
+    def __init__(self, core: CoreInterface, restart_fn: Callable):
         super().__init__()
+        self.restart_fn = restart_fn
         self.standardItemModel = None
         self.standardItemModelOutput = None
         self.core = core
         self.setupUi(self)
-        self.postSetup()
+        self.coreFrame.setEnabled(self.core.url_switch_is_enable())
+
+        connection_ok = self.postSetup()
+        if not connection_ok:
+            return
+
         self.initConnections()
         self.__init_graph()
 
         self.showMaximized()
 
-    def postSetup(self):
-        # self.gridLayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignJustify)
+    @core_callback_secure
+    def postSetup(self) -> bool:
+        connection_ok = self.init_core_manager()
+        if not connection_ok:
+            return False
+
         self.gridLayout_8.addWidget(self.groupBox, 1, 1, 2, 1,
                                   QtCore.Qt.AlignmentFlag.AlignLeading | QtCore.Qt.AlignmentFlag.AlignLeft |
                                   QtCore.Qt.AlignmentFlag.AlignTop)
@@ -51,6 +68,87 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.progressBar.setVisible(False)
         self.progressBar_2.setVisible(False)
         self.initTables()
+        return True
+
+    @core_callback_secure
+    def init_core_manager(self) -> bool:
+        self.core.set_connection_error_fn(lambda s: self.connectionError(s))
+        self.core.set_connection_success_fn(lambda s: self.connectionOk(s))
+        if not self.core.check_connection(network_settings.LOCAL_URL):
+            self.__switch_to_non_server()
+
+        self.__init_core_manager_widgets()
+        return True
+
+    def __switch_to_non_server(self):
+        self.setEnabled(False)
+        msg = QtWidgets.QErrorMessage()
+        msg.showMessage(
+            f"Ошибка соединения: локальное ядро не может быть использовано. Приложение будет переключено в режим "
+            f"встроенного ядра.",
+        )
+        msg.setWindowTitle("Ошибка")
+        msg.exec_()
+
+        self.core.shutdown_server_if_started()
+        self.core = CoreFactory.create_core(create_core_manager=False)
+        self.close()
+
+        mp.set_start_method('spawn')
+        pr = mp.Process(target=self.restart_fn, )
+        pr.start()
+
+    @core_callback_secure
+    def __init_core_manager_widgets(self):
+        urls_known = self.core.get_urls_known()
+        self.update_connections_items()
+        index_to_params_mapper = tuple((_url, _name) for _name, _url in urls_known.items())
+
+        self.pushButton_7.clicked.connect(lambda e, mapper=index_to_params_mapper: self.core.set_url(
+            *mapper[self.comboBox.currentIndex()]
+        ))
+
+        self.pushButton_8.clicked.connect(lambda e: self.mgmt_connections_window())
+        self.pushButton_9.clicked.connect(self.__switch_to_non_server)
+
+    @core_callback_secure
+    def update_connections_items(self):
+        self.comboBox.clear()
+        urls_known = self.core.get_urls_known()
+        self.comboBox.addItems([f"{name} ({urls_known[name]})" for name in urls_known])
+        self.comboBox.setCurrentIndex(list(urls_known.keys()).index(self.core.get_url_name()))
+
+    @core_callback_secure
+    def mgmt_connections_window(self):
+        self.setEnabled(False)
+        child = CoreMgmtWindow(self, self.core)
+        child.show()
+
+    @core_callback_secure
+    def connectionError(self, s: str):
+        QtWidgets.QErrorMessage(self).showMessage(f"Ошибка соединения: {s}. Будет использовано локальное ядро")
+        if self.core.get_url() != network_settings.LOCAL_URL:
+            self.setCoreConnection()
+        else:
+            self.__switch_to_non_server()
+
+    def connectionOk(self, s: str):
+        self.statusbar.showMessage(
+            f"Соединение установлено {s} ({datetime.now().strftime('%H:%M:%S')})", 3000
+        )
+
+    @core_callback_secure
+    def setCoreConnection(self, url: Optional[str] = None):
+        self.core.set_url(url)
+        connected, e = self.core.get_status()
+        if connected:
+            self.connectionOk(f"(подключено ядро {url})")
+        else:
+            QtWidgets.QErrorMessage(self).showMessage(
+                f"Ошибка соединения: {str(e)}: не удалось подключиться к ядру {url}"
+            )
+            if self.core.get_url() == network_settings.LOCAL_URL and not connected:
+                self.__switch_to_non_server()
 
     def initConnections(self):
         self.pushButton_6.clicked.connect(lambda x: self.__update_example_recs(force_reload=True))
@@ -69,6 +167,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         if increase:
             self.__set_default_values(self.standardItemModel)
 
+    @core_callback_secure
     def predict(self):
         ids, inps = self.__getInput()
         if len(inps) == 0:
@@ -80,6 +179,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.tableView.resizeColumnsToContents()
 
+    @core_callback_secure
     def optimResult(self, table: CustomTableView = None, pbar: QProgressBar = None):
         if table is None:
             table = self.tableView_2
@@ -99,6 +199,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.__outputResult(ids, inp, result, table=table)
         pbar.setVisible(False)
 
+    @core_callback_secure
     def __outputResult(self, ids: List[str], inp: pd.DataFrame, result: pd.DataFrame,
                        table: Optional[CustomTableView] = None):
         if table is None:
@@ -110,6 +211,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         table.resizeColumnsToContents()
 
+    @core_callback_secure
     def __getDfForRecord(self, id_str: str, row_inp: np.ndarray, row_res: np.ndarray) -> pd.DataFrame:
         new_df_data = [row_inp]
         if any([r is None for r in row_inp]):
@@ -119,7 +221,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         new_df = pd.DataFrame(new_df_data, columns=self.core.get_columns())
         new_df[ALIVE_COLUMN] = self.core.predict(new_df)
-        df_for_delta = self.core.system.encoder.encode_df(new_df.iloc[-2:]).astype(float)
+        df_for_delta = self.core.fill_empty(new_df.iloc[-2:], encode_only=True).astype(float)
 
         delta_row = df_for_delta.iloc[-1] - df_for_delta.iloc[-2]
         new_df = pd.concat((new_df, pd.DataFrame([delta_row])))
@@ -129,13 +231,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         new_df[ID_COLUMN] = id_str
         return new_df[[ID_COLUMN, TYPE_COLUMN, ALIVE_COLUMN, *self.core.get_columns()]]
 
+    @core_callback_secure
     def __addResultRows(self, id_str: str, row_inp: np.ndarray, row_res: np.ndarray, model: QStandardItemModel):
         new_df = self.__getDfForRecord(id_str, row_inp, row_res)
         for i, row in new_df.iterrows():
             model.appendRow([getItem(item) for item in row])
 
+    @core_callback_secure
     def __getInput(self) -> Tuple[List[str], pd.DataFrame]:
-        # TODO: double validator comma sep
         res = []
         for r in range(self.standardItemModel.rowCount()):
             row = [self.standardItemModel.data(self.standardItemModel.index(r, c))
@@ -147,19 +250,20 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         return res[ID_COLUMN].tolist(), res[self.core.get_columns()]
 
     def setResultsVisible(self, visible: bool):
-        # for w in (self.label_2, self.tableView_2, self.pushButton_3):
-        #     w.setVisible(visible)
         self.widgetTrBottom.setVisible(visible)
 
     def showResults(self):
         self.label_2.setVisible(True)
 
+    @core_callback_secure
     def __get_input_columns(self) -> List[str]:
         return [ID_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
+    @core_callback_secure
     def __get_output_columns(self) -> List[str]:
         return [ID_COLUMN, TYPE_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
+    @core_callback_secure
     def __get_example_predict_columns(self) -> List[str]:
         return [ID_COLUMN, ALIVE_GT_COLUMN, ALIVE_COLUMN] + self.core.get_columns()
 
@@ -184,6 +288,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         ):
             self.__initTable(table, model, columns, init_delegates)
 
+    @core_callback_secure
     def __init_column(self, tableView: QtWidgets.QTableView, columns):
         cat_columns = self.core.get_data_info().cat_features
         all_features = self.core.get_columns()
@@ -192,13 +297,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             feature_name = columns[idx]
             idx = columns.index(feature_name)
             if feature_name in cat_columns:
-                options = list(self.core.system.encoder.encoders[feature_name].classes_)
+                options = list(self.core.get_cat_feature_values(feature_name))
                 tableView.setItemDelegateForColumn(idx, ComboBoxDelegate(tableView, options))
             elif feature_name in all_features:
                 min_l, max_l = self.core.get_decoded_limits(feature_name)
                 bottom, top, decimals = min_l, max_l, 4
                 tableView.setItemDelegateForColumn(idx, DoubleDelegate(tableView, bottom, top, decimals))
 
+    @core_callback_secure
     def __set_default_values(self, model: QStandardItemModel, row_num: Optional[int] = None):
         if row_num is None:
             row_num = model.rowCount() - 1
@@ -210,7 +316,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             feature_name = columns[idx]
             idx = columns.index(feature_name)
             if feature_name in cat_columns:
-                options = list(self.core.system.encoder.encoders[feature_name].classes_)
+                options = list(self.core.get_cat_feature_values(feature_name))
                 if None not in options:
                     model.setItem(row_num, idx, QStandardItem(options[0]))
             elif feature_name == ALIVE_COLUMN:
@@ -236,6 +342,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         tableView.resizeColumnsToContents()
 
+    @core_callback_secure
     def __init_graph(self):
         test_xy = self.core.get_test_data()
         test_df = test_xy.X.copy()
@@ -248,7 +355,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         test_df[ID_COLUMN] = test_df.index.values
         test_df = test_df[[ID_COLUMN, ALIVE_GT_COLUMN, ALIVE_COLUMN, *cols]]
 
-        plotly_graph, plotly_bar = plot_figures(preds, ground_true)
+        plotly_graph, plotly_bar = plot_figures(preds, ground_true, ALIVE_GT_COLUMN)
         self.webEngineView.setHtml(plotly_graph.to_html(include_plotlyjs='cdn'))
         self.webEngineView_2.setHtml(plotly_bar.to_html(include_plotlyjs='cdn'))
 
@@ -259,6 +366,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
         self.__update_example_recs()
 
+    @core_callback_secure
     def __update_example_recs(self, force_reload: bool = False):
         test_xy = self.core.get_test_data()
 
@@ -268,6 +376,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         recs = self.__get_example_recommendations(bad_X, force_reload=force_reload)
         self.__outputResult(ids, inp=bad_X[self.core.get_columns()], result=recs, table=self.tableView_4)
 
+    @core_callback_secure
     def __get_example_recommendations(self, df: pd.DataFrame, force_reload=False):
         if not settings.recalc_test and not force_reload:
             rec = pd.read_csv(settings.test_recom_path)

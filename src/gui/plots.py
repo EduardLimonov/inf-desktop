@@ -31,16 +31,20 @@ def plot_accuracy(p_pred, y_true):
     return fig
 
 
-def plot_bar(p_pred, y_true):
-    fig = px.histogram(pd.DataFrame({"Оценка выживания": p_pred, "Выжил": y_true}),
+def plot_bar(p_pred, y_true, gt_label: str):
+    fig = px.histogram(pd.DataFrame({"Оценка выживания": p_pred,
+                                     gt_label: pd.Series(y_true).apply(lambda s: "выжил" if int(s) else "не выжил")}),
                        color_discrete_sequence=["#8fabf2", "#f28fa6"],
                        title="Распределение оценок выживания (тестовые данные)",
-                       barmode="group")
-    fig.update_layout(bargap=0.2, yaxis_title="Количество пациентов", legend_title="Признак", xaxis_title="Оценка",
+                       # pattern_shape=gt_label,
+                       color=gt_label,
+                       barmode="stack",
+                       nbins=20)
+    fig.update_layout(bargap=0.1, yaxis_title="Количество пациентов", legend_title=gt_label, xaxis_title="Оценка",
                       hovermode="x")
     return fig
 
 
-def plot_figures(p_pred, y_true):
-    return plot_accuracy(p_pred, y_true), plot_bar(p_pred, y_true)
+def plot_figures(p_pred, y_true, gt_label: str):
+    return plot_accuracy(p_pred, y_true), plot_bar(p_pred, y_true, gt_label)
 

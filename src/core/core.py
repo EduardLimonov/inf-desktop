@@ -1,24 +1,67 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable, Dict
 
-import streamlit as st
-import numpy as np
 import pandas as pd
 
+from core.base_core import CoreInterface
 from data.data_handler import ProcessHandler
 from data.initializers import init_all, System, XYTables
 from data.utils import CommonDataInfo
 from settings import settings
+from settings.defines import defines
+from settings.network import network_settings
 
 
-class Core:
+class Core(CoreInterface):
     system: System
+
     _core: ProcessHandler
 
-    def __init__(self):
-        self.system = init_all(settings.dataset_path)
+    def __init__(self, path: str = settings.dataset_path):
+        self.system = init_all(path)
         self._core = ProcessHandler(
             self.system.encoder, self.system.processor, self.system.data_info, self.system.model
         )
+
+    def url_switch_is_enable(self) -> bool:
+        return False
+
+    def get_status(self) -> Tuple[bool, Optional[Exception]]:
+        return True, None
+
+    def shutdown_server_if_started(self):
+        pass
+
+    @staticmethod
+    def force_remove_server():
+        pass
+
+    def add_url(self, url: str, url_name: str) -> bool:
+        return False
+
+    def set_url(self, url: Optional[str] = None, url_name: Optional[str] = "") -> bool:
+        return True
+
+    def remove_url(self, url_name: str) -> bool:
+        return False
+
+    def get_url(self) -> str:
+        return network_settings.NON_SERVER_CORE_URL
+
+    def get_url_name(self) -> str:
+        return network_settings.NON_SERVER_CORE_NAME
+
+    def get_urls_known(self) -> Dict[str, str]:
+        return {network_settings.NON_SERVER_CORE_NAME: network_settings.NON_SERVER_CORE_URL}
+
+    def set_connection_error_fn(self, connection_error_fn: Callable[[str], None]):
+        pass
+
+    def set_connection_success_fn(self, connection_success_fn: Callable[[str], None]):
+        pass
+
+    @staticmethod
+    def check_connection(url: str, timeout: float = network_settings.CONN_CHECK_TIMEOUT) -> bool:
+        return True
 
     def get_columns(self) -> List[str]:
         return self.system.data_info.num_to_column_mapper
@@ -45,16 +88,10 @@ class Core:
         X = self._core.decode_data(self.system.test_data.X, rescale=False)
         return XYTables(X, self.system.test_data.y)
 
-    def calc_delta(self, df1: pd.DataFrame, df2: pd.DataFrame) -> pd.DataFrame:
-        df1 = self._core.encode_data(df1, rescale=False)
-        df2 = self._core.encode_data(df2, rescale=False)
-
-        return df2 - df1
-
     def get_data_info(self) -> CommonDataInfo:
         return self.system.data_info
 
-    def get_decoded_limits(self, feature_name) -> Tuple[float, float]:
+    def get_decoded_limits(self, feature_name: str) -> Tuple[float, float]:
         min_l, max_l = self.system.data_info.feature_limits[feature_name]
         min_l, max_l = self.system.processor.inverse_process(
             [
@@ -64,7 +101,10 @@ class Core:
         )[:, self.system.data_info.num_to_column_mapper.index(feature_name)]
         return min_l, max_l
 
-    def fill_empty(self, rows: pd.DataFrame) -> pd.DataFrame:
+    def fill_empty(self, rows: pd.DataFrame, encode_only: bool = False) -> pd.DataFrame:
+        if encode_only:
+            return self._core.encode_data(rows[self.system.data_info.num_to_column_mapper], rescale=False)
+
         df_enc_resc_fill = self._core.encode_data(rows[self.system.data_info.num_to_column_mapper], rescale=True)
         df_enc_resc_fill = pd.DataFrame(
             df_enc_resc_fill, columns=self.system.data_info.num_to_column_mapper, index=rows.index
@@ -73,37 +113,10 @@ class Core:
         df_dec = self._core.decode_data(df_enc_resc_fill, rescale=True)
         return df_dec
 
-    def fill_empty_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        df = df.reset_index(drop=True)
-        all_feats = list(df.columns)
+    def set_define(self, param_name: str, value: str):
+        assert hasattr(defines, param_name), f"Defines settings has not attribute {param_name}"
 
-        if "Метка" in df.columns:
-            idx = df[df["Метка"].values != "Дельта"].index
-        else:
-            idx = np.full(len(df), True)
+        defines.set_attr(param_name, value)
 
-        df_enc_resc_fill = self._core.encode_data(df[self.system.data_info.num_to_column_mapper].loc[idx], rescale=True)
-        df_enc_resc_fill = pd.DataFrame(
-            df_enc_resc_fill, columns=self.system.data_info.num_to_column_mapper, index=df.loc[idx].index
-        )
-
-        df_dec = self._core.decode_data(df_enc_resc_fill, rescale=True)
-
-        res = []
-        for i in df.index:
-            if i in df_dec.index:
-                res.append(df_dec.loc[i])
-                for c in ("Идентификатор", "Метка", "Оценка выживания"):
-                    if c in df.columns:
-                        res[-1][c] = df.loc[i][c]
-            else:
-                res.append(df.loc[i])
-
-        df_dec = pd.DataFrame(res)
-
-        for feat in all_feats:
-            if feat not in df_dec.columns:
-                df_dec[feat] = df[feat].values
-
-        df_dec = df_dec[all_feats].set_index("Идентификатор", drop=True)
-        return df_dec
+    def get_cat_feature_values(self, feature_name: str) -> List[str]:
+        return list(self.system.encoder.encoders[feature_name].classes_)

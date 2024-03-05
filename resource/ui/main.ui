@@ -26,7 +26,7 @@
       <item alignment="Qt::AlignLeft">
        <widget class="QFrame" name="coreFrame">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
@@ -39,7 +39,7 @@
         </property>
         <property name="maximumSize">
          <size>
-          <width>483</width>
+          <width>16777215</width>
           <height>16777215</height>
          </size>
         </property>
@@ -50,12 +50,12 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_3">
            <property name="sizeConstraint">
-            <enum>QLayout::SetMaximumSize</enum>
+            <enum>QLayout::SetNoConstraint</enum>
            </property>
            <item>
             <widget class="QLabel" name="label_9">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -68,7 +68,7 @@
            <item>
             <widget class="QComboBox" name="comboBox">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
@@ -77,6 +77,12 @@
            </item>
            <item>
             <widget class="QPushButton" name="pushButton_7">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Применить</string>
              </property>
@@ -84,8 +90,21 @@
            </item>
            <item>
             <widget class="QPushButton" name="pushButton_8">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
-              <string>Управление ядрами</string>
+              <string>Управление ядрами...</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_9">
+             <property name="text">
+              <string>Отключить ядра</string>
              </property>
             </widget>
            </item>
@@ -317,7 +336,7 @@
                       <number>100</number>
                      </property>
                      <property name="value">
-                      <number>50</number>
+                      <number>80</number>
                      </property>
                      <property name="orientation">
                       <enum>Qt::Horizontal</enum>
@@ -339,7 +358,7 @@
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>0.50</string>
+                      <string>0.80</string>
                      </property>
                      <property name="alignment">
                       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -547,70 +566,14 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>906</width>
-                 <height>175</height>
+                 <width>924</width>
+                 <height>193</height>
                 </rect>
                </property>
                <attribute name="label">
                 <string>Лечение</string>
                </attribute>
                <layout class="QGridLayout" name="gridLayout_5">
-                <item row="2" column="2">
-                 <layout class="QGridLayout" name="gridLayout_6">
-                  <item row="1" column="0">
-                   <widget class="QPushButton" name="pushButton_6">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>Обновить таблицу</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="1">
-                   <widget class="QSlider" name="horizontalSlider_2">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="maximum">
-                     <number>100</number>
-                    </property>
-                    <property name="value">
-                     <number>50</number>
-                    </property>
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="tickPosition">
-                     <enum>QSlider::TicksBothSides</enum>
-                    </property>
-                    <property name="tickInterval">
-                     <number>10</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="1">
-                   <widget class="QLabel" name="label_8">
-                    <property name="text">
-                     <string>0.50</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="label_7">
-                    <property name="text">
-                     <string>Целевая оценка выживания:</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
                 <item row="2" column="0">
                  <widget class="QLabel" name="label_6">
                   <property name="font">
@@ -633,6 +596,67 @@
                 <item row="6" column="0" colspan="3">
                  <widget class="CustomTableView" name="tableView_4"/>
                 </item>
+                <item row="2" column="2">
+                 <widget class="QFrame" name="frame">
+                  <property name="frameShape">
+                   <enum>QFrame::StyledPanel</enum>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout_6">
+                   <item row="1" column="0">
+                    <widget class="QPushButton" name="pushButton_6">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="text">
+                      <string>Обновить таблицу</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="1" column="1">
+                    <widget class="QSlider" name="horizontalSlider_2">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="maximum">
+                      <number>100</number>
+                     </property>
+                     <property name="value">
+                      <number>80</number>
+                     </property>
+                     <property name="orientation">
+                      <enum>Qt::Horizontal</enum>
+                     </property>
+                     <property name="tickPosition">
+                      <enum>QSlider::TicksBothSides</enum>
+                     </property>
+                     <property name="tickInterval">
+                      <number>10</number>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="1">
+                    <widget class="QLabel" name="label_8">
+                     <property name="text">
+                      <string>0.80</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="label_7">
+                     <property name="text">
+                      <string>Целевая оценка выживания:</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
                </layout>
               </widget>
              </widget>
@@ -640,11 +664,6 @@
            </layout>
           </item>
          </layout>
-        </widget>
-        <widget class="QWidget" name="tab_settings">
-         <attribute name="title">
-          <string>Управление ядром</string>
-         </attribute>
         </widget>
        </widget>
       </item>
