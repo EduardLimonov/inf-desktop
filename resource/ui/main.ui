@@ -665,11 +665,6 @@
           </item>
          </layout>
         </widget>
-        <widget class="QWidget" name="tab_settings">
-         <attribute name="title">
-          <string>Управление ядром</string>
-         </attribute>
-        </widget>
        </widget>
       </item>
      </layout>

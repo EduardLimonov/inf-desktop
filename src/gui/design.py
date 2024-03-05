@@ -387,9 +387,6 @@ class Ui_MainWindow(object):
         self.gridLayout_2.addWidget(self.toolBox, 0, 0, 1, 1)
         self.gridLayout_3.addLayout(self.gridLayout_2, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab_an, "")
-        self.tab_settings = QtWidgets.QWidget()
-        self.tab_settings.setObjectName("tab_settings")
-        self.tabWidget.addTab(self.tab_settings, "")
         self.verticalLayout.addWidget(self.tabWidget)
         self.verticalLayout_2.addLayout(self.verticalLayout)
         MainWindow.setCentralWidget(self.centralwidget)
@@ -434,6 +431,5 @@ class Ui_MainWindow(object):
         self.label_7.setText(_translate("MainWindow", "Целевая оценка выживания:"))
         self.toolBox.setItemText(self.toolBox.indexOf(self.page_4), _translate("MainWindow", "Лечение"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_an), _translate("MainWindow", "Аналитика работы"))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_settings), _translate("MainWindow", "Управление ядром"))
 from PyQt5 import QtWebEngineWidgets
 from gui.table_utils import CustomTableView
