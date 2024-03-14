@@ -1,0 +1,11 @@
+pandas
+numpy
+scikit-learn==1.2.2
+pyqt5
+PyQtWebEngine
+pydantic
+killport
+requests
+fastapi
+plotly
+openpyxl

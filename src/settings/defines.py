@@ -1,15 +1,16 @@
 from __future__ import annotations
+
+import json
 import os
-import pickle
-from dataclasses import dataclass
-from typing import Tuple
+from typing import List, Dict, Tuple
+
+from pydantic import BaseModel
 
 from settings import settings
 
 
-@dataclass
-class Defines:
-    unchangeable_features: Tuple[str] = (
+class Defines(BaseModel):
+    unchangeable_features: List[str] = [
         'срсод2', 'диастолическое артериальное давление при поступлении',
         'частота сердечных сокращений при поступлении', 'рост', 'АСТ',
         'ширина распределения эритроцитов (RDW-SD))', 'эритроц2', 'сробем2',
@@ -26,8 +27,8 @@ class Defines:
         'сосуд.рис', 'гипотиреоз', 'дислипидемия',
         'артериальная гипертензия', ' хронический бронхит', 'гепатоз', 'ожирение', 'потеря веса', 'ПИКС количество',
         'МА', 'острая сердечная недостаточность по Killip', 'ТЭЛА',
-    )
-    features = [
+    ]
+    features: List[str] = [
         'ПТИ',
         'ТЭЛА',
         'креатинин',
@@ -69,36 +70,38 @@ class Defines:
         # 'На',
         # 'средний объем тромбоцитов'
     ]
-    features_hard_to_change = (
+    features_hard_to_change: List[str] = [
         "моноциты", "лимфоциты", "эозинофилы", "МНО", "ширина распределения эритроцитов (RDW-CV))",
         "ширина распределения тромбоцитов", "тромбокрит", "средняя концентрация эритроцитов", "тропонин",
         "содержание крупных тромбоцитов", "среднее содержание гемоглобина в эритроците"
-    )
+    ]
 
-    changeable_features = []
-    feature_limits = {
+    changeable_features: List[str] = []
+    feature_limits: Dict[str, Tuple[float, float]] = {
         "": [1, 2]
     }
 
-    recommended_limits = {
+    recommended_limits: Dict[str, Tuple[float, float]] = {
         "": [1, 2]
     }
 
-    HARD_TO_CHANGE_K = 10
+    HARD_TO_CHANGE_K: float = 10
 
-    feature_change_coef = dict()
+    feature_change_coef: Dict[str, float] = dict()
 
     def save_defines(self):
         os.makedirs(os.path.dirname(settings.defines_path), exist_ok=True)
 
-        with open(settings.defines_path, "wb") as f:
-            pickle.dump(self, f)
+        with open(settings.defines_path, "w") as f:
+            json.dump(self.dict(), f, ensure_ascii=False, sort_keys=False, indent=4)
+            # pickle.dump(self, f)
 
     @staticmethod
     def create_defines(save_when_init: bool = True) -> Defines:
         if os.path.exists(settings.defines_path):
-            with open(settings.defines_path, "rb") as f:
-                return pickle.load(f)
+            with open(settings.defines_path, "r") as f:
+                # return pickle.load(f)
+                return Defines(**json.load(f))
         else:
             res = Defines.__init_defines(Defines())
 

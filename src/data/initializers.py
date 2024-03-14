@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 from dataclasses import dataclass
@@ -10,15 +11,30 @@ from sklearn.impute import KNNImputer
 from sklearn.preprocessing import StandardScaler
 
 from settings import settings
-from settings.defines import defines  # features, feature_limits, changeable_features, recommended_limits, feature_change_coef
+from settings.defines import defines
 from data.utils import LabelEncoderPool, get_train_test_final, get_xy, fit_predictor, ModelProcessor, ModelHandler, \
     CommonDataInfo
+
+
+NAN_MARK = "NAN"
 
 
 @dataclass
 class XYTables:
     X: pd.DataFrame
     y: pd.Series
+
+    def to_dict(self) -> Dict[str, Dict]:
+        return {
+            "X": self.X.fillna(NAN_MARK).to_dict(),
+            "y": self.y.fillna(NAN_MARK).to_dict()
+        }
+
+    @staticmethod
+    def from_dict(dct: Dict):
+        X = pd.DataFrame.from_dict(dct["X"]).replace(NAN_MARK, np.nan)
+        y = pd.Series(dct["y"]).replace(NAN_MARK, np.nan)
+        return XYTables(X, y)
 
 
 @dataclass
@@ -131,7 +147,7 @@ def _fit_model(df_raw: pd.DataFrame, target_column: str = "alive", train_size=0.
 
     X_test, y_test = get_xy(data_final_test)
 
-    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=25,
+    model = fit_predictor(X_train, y_train, model=RandomForestClassifier(n_estimators=20,
                                                                          class_weight="balanced_subsample"))
 
     return _FitModelResults(

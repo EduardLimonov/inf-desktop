@@ -64,7 +64,7 @@ class ProcessHandler:
             lambda t: 1 - self.optimization_fn(t, x, x_add, target_p),
             x,
             method=method,
-            options=dict(ftol=5e-2, xtol=5e-2, return_all=True),
+            options=dict(return_all=True),  # , ftol=5e-2, xtol=5e-2, ),
             bounds=[self._data_info.feature_limits[f] for f in self._data_info.changeable_features],
             # tol=1e-2
         )

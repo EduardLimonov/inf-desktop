@@ -1,9 +1,8 @@
 import datetime
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Iterable, List, Sequence
+from typing import List, Sequence
 
 import numpy as np
-from PyQt6.QtWidgets import QProgressBar
+from PyQt5.QtWidgets import QProgressBar
 
 
 class CustomPB:
