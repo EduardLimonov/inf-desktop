@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import List
+from typing import List, Dict, Tuple
 
 from pydantic import BaseModel
 
@@ -28,7 +28,7 @@ class Defines(BaseModel):
         'артериальная гипертензия', ' хронический бронхит', 'гепатоз', 'ожирение', 'потеря веса', 'ПИКС количество',
         'МА', 'острая сердечная недостаточность по Killip', 'ТЭЛА',
     ]
-    features = [
+    features: List[str] = [
         'ПТИ',
         'ТЭЛА',
         'креатинин',
@@ -70,24 +70,24 @@ class Defines(BaseModel):
         # 'На',
         # 'средний объем тромбоцитов'
     ]
-    features_hard_to_change = (
+    features_hard_to_change: List[str] = [
         "моноциты", "лимфоциты", "эозинофилы", "МНО", "ширина распределения эритроцитов (RDW-CV))",
         "ширина распределения тромбоцитов", "тромбокрит", "средняя концентрация эритроцитов", "тропонин",
         "содержание крупных тромбоцитов", "среднее содержание гемоглобина в эритроците"
-    )
+    ]
 
-    changeable_features = []
-    feature_limits = {
+    changeable_features: List[str] = []
+    feature_limits: Dict[str, Tuple[float, float]] = {
         "": [1, 2]
     }
 
-    recommended_limits = {
+    recommended_limits: Dict[str, Tuple[float, float]] = {
         "": [1, 2]
     }
 
-    HARD_TO_CHANGE_K = 10
+    HARD_TO_CHANGE_K: float = 10
 
-    feature_change_coef = dict()
+    feature_change_coef: Dict[str, float] = dict()
 
     def save_defines(self):
         os.makedirs(os.path.dirname(settings.defines_path), exist_ok=True)
