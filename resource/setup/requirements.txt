@@ -9,3 +9,4 @@ requests
 fastapi
 plotly
 openpyxl
+uvicorn
