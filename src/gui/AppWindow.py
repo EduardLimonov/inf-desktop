@@ -39,6 +39,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __init__(self, core: CoreInterface, restart_fn: Callable):
         super().__init__()
+        self.setWindowTitle("IMA: inf medical adviser")
         self.restart_fn = restart_fn
         self.standardItemModel = None
         self.standardItemModelOutput = None

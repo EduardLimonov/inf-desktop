@@ -1,4 +1,5 @@
 import sys
+import os
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -7,6 +8,7 @@ from gui.AppWindow import MainWindow
 
 
 def restart_fn(init_manager: bool = False):
+    os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
     QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_ShareOpenGLContexts, True)
     app = QtWidgets.QApplication(sys.argv)
     with open("resource/ui/styles.qss", "r") as f:
